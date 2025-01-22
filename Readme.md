@@ -11,13 +11,11 @@
 
 ```
 git clone https://github.com/dimonpoc/metrics.git && \
-cd grafana_stack_for_docker && \
-sudo mkdir -p /mnt/common_volume/swarm/grafana/config && \
-sudo mkdir -p /mnt/common_volume/grafana/{grafana-config,grafana-data,prometheus-data,loki-data,promtail-data} && \
-sudo chown -R $(id -u):$(id -g) {/mnt/common_volume/swarm/grafana/config,/mnt/common_volume/grafana} && \
-touch /mnt/common_volume/grafana/grafana-config/grafana.ini && \
-cp config/* /mnt/common_volume/swarm/grafana/config/ && \
-mv grafana.yaml docker-compose.yaml && \
+cd metrics-main-dev && \
+sudo mkdir -p /metrics-main-dev/{config,grafana-config,grafana-data,prometheus-data,loki-data,promtail-data} && \
+sudo chown -R $(id -u):$(id -g) /metrics-main-dev/ && \
+touch /metrics-main-dev/grafana-config/grafana.ini && \
+cp config/* /metrics-main-dev/config/ && \
 docker compose up -d
 ```
 
@@ -26,14 +24,10 @@ docker compose up -d
 
 ## Особенности конфигурации из примера
 
-* Конфигурация для использования в docker swarm. Если необходимо использовать просто с docker compose: 
-  * удалить или скорректировать параметры `deploy:` в `grafana.yaml`, переименовать `mv grafana.yaml docker-compose.yaml`
-  * не использовать docker secrets, т.к. docker compose в настоящий момент не поддерживает secrets
+
 * В конфигурации используются bind volumes. Перед запуском необходимо: 
-  * В `grafana.yaml` скорректировать используемые в примере пути: `/mnt/common_volume/swarm/grafana/config` (файлы конфигураций) и `/mnt/common_volume/grafana` (файлы данных) на свои. 
-    * Для кластера (несколько нод): подразумевается, что `/mnt/common_volume` это общий том для нод в кластере. Если создать общий том для всех нод нет возможности, необходимо запускать все сервисы, кроме promtail, только на одной ноде, а для promtail создать bind volume на каждой ноде (это корректно, что для каждого экземпляра promtail будет свой volume).
-    * Для запуска всего стека на одной оде (одной VM, одной машине) можно использовать любой удобный volume.
-    * В любом случае необходимо **обязательно** создать пустые папки и файлы конфигурации (для последних - даже если они пустые, например `grafana.ini`). Команды для создания указаны в `grafana.yaml` в комментариях в секции `volume`.
+  * В `docker-compose.yaml` скорректировать используемые в примере пути на свои. 
+    * В любом случае необходимо **обязательно** создать пустые папки и файлы конфигурации (для последних - даже если они пустые, например `grafana.ini`).
 * В конфигурации `prometheus.yaml` указаны примеры сбора метрик с различных exporter'ов, для сбора метрик с них, последние необходимо установить и настроить (в противном случае, с отсутствующих не будут собираться метрики).
 
 ## Конфигурация отдельных сервисов
@@ -46,7 +40,7 @@ docker compose up -d
 * Порт `3000`
 * Для использования reserve proxy необходимо следовать руководству: <https://grafana.com/tutorials/run-grafana-behind-a-proxy/>
 * Вместо редактирования `grafana.ini` домен и url можно указать в environment variables `GF_SERVER_DOMAIN`, `GF_SERVER_ROOT_URL`
-* Рекомендуется использовать БД вместо хранения данных grafana в SQLite, прример конфигурации подключения к PostgreSQL указан в `grafana.yaml`
+* Рекомендуется использовать БД вместо хранения данных grafana в SQLite, прример конфигурации подключения к PostgreSQL указан в `docker-compose.yaml`
 * Для отправки скриншотов с dashboards вместе с алертами (поддерживаются не все мессенджеры), необходимо использовать grafana image renderer (в конфигурации из примера уже настроено всё необходимое)
 * Начальный логин `admin` пароль `admin`
 
@@ -237,7 +231,7 @@ scrape_configs:
 ```
 
 * В `promtail.yaml` можно использовать environment variables (например `custom_label: "${ENV}"`) для этого нужно передать дополнительно команду `-config.expand-env=true`
-* **Для корректной работы labels** необходимо внести в `/etc/docker/daemon.json` (на каждом хосте) настройку `log-driver` и `log-opts`: 
+* **Для корректной работы labels** необходимо внести в `/etc/docker/daemon.json` настройку `log-driver` и `log-opts`: 
   * После внесения изменений в `/etc/docker/daemon.json` необходимо перезапустить docker daemon (`sudo systemctl restart docker`) для ОС, использующих systemctl
   * Для изменения логирования необходимо также перезапустить контейнеры (для compose и обычных контейнеров), контейнеры swarm пересоздаются при перезапуске docker
 
