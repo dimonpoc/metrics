@@ -11,7 +11,7 @@
 
 ```
 git clone https://github.com/dimonpoc/metrics.git && \
-cd metrics-main-dev && \
+cd metrics && \
 sudo mkdir -p /metrics-main-dev/{config,grafana-config,grafana-data,prometheus-data,loki-data,promtail-data} && \
 sudo chown -R $(id -u):$(id -g) /metrics-main-dev/ && \
 touch /metrics-main-dev/grafana-config/grafana.ini && \
